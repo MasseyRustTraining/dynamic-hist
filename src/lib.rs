@@ -1,48 +1,56 @@
-use std::ops::Range;
-
-pub struct DynHist {
-    count: usize,
+/// Record of samples. Each bin in the record
+/// represents its fraction of the space 0.0..1.0.
+pub struct Hist {
     bins: Vec<usize>,
-    range: Range<f64>,
+    count: usize,
 }
 
-pub enum DynHistError {
-    OutOfRange { value: f64, range: Range<f64> },
-    IndexFail,
-}
-
-impl DynHist {
-    pub fn new(nbins: usize, range: Range<f64>) -> Self {
-        Self {
-            count: 0,
-            bins: vec![0; nbins],
-            range,
-        }
+/// Keeps track of which bin samples fall in and report as
+/// needed.
+impl Hist {
+    /// Create a new histogram with `n` bins.
+    pub fn new(n: usize) -> Hist {
+        Hist { bins: vec![0; n], count: 0 }
     }
 
-    pub fn sample(&mut self, value: f64) -> Result<(), DynHistError> {
-        if !self.range.contains(&value) {
-            let range = self.range.clone();
-            return Err(DynHistError::OutOfRange { value, range });
+    /// Count a new sample.
+    pub fn sample(&mut self, posn: f32) {
+        if posn.is_nan() || posn < 0.0 || posn >= 1.0 {
+            panic!("position out of range");
         }
-        let offset = value - self.range.start;
-        let interval = self.range.end - self.range.start;
-        let position: f64 = offset / interval;
-        let nbins: f64 = self.bins.len() as f64;
-        let bin = (position * nbins).floor();
-        if bin.is_nan() || bin > usize::MAX as f64 {
-            return Err(DynHistError::IndexFail);
-        }
-        self.bins[bin as usize] += 1;
+        let nbins = self.bins.len();
+        let bin_number = (nbins as f32 * posn).floor() as usize;
+        self.bins[bin_number] += 1;
         self.count += 1;
-        Ok(())
     }
 
-    pub fn hist(&self) -> &[usize] {
+    /// Return a slice containing the counts in the histogram.
+    pub fn counts(&self) -> &[usize] {
         &self.bins
     }
 
-    pub fn count(&self) -> usize {
+    /// Return the number of samples taken.
+    pub fn total_count(&self) -> usize {
         self.count
     }
+}
+
+#[test]
+fn smoke_test() {
+    let mut h = Hist::new(4);
+    let samples = [0.1, 0.3, 0.35, 0.78];
+    for s in samples {
+        h.sample(s);
+    }
+    let n: usize = h.total_count();
+    assert_eq!(n, 4);
+    let counts: &[usize] = h.counts();
+    assert_eq!(counts, &[1, 2, 0, 1]);
+}
+
+#[test]
+#[should_panic]
+fn test_bad_posn() {
+    let mut h = Hist::new(4);
+    h.sample(-1.5);
 }
