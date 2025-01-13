@@ -33,6 +33,28 @@ impl Hist {
     pub fn total_count(&self) -> usize {
         self.count
     }
+
+    /// Return the lowest bin number, if any,
+    /// containing a non-zero count.
+    pub fn min(&self) -> Option<usize> {
+        for (i, &x) in self.bins.iter().enumerate() {
+            if x > 0 {
+                return Some(i);
+            }
+        }
+        None
+    }
+
+    /// Return the highest bin number, if any,
+    /// containing a non-zero count.
+    pub fn max(&self) -> Option<usize> {
+        for (i, &x) in self.bins.iter().enumerate().rev() {
+            if x > 0 {
+                return Some(i);
+            }
+        }
+        None
+    }
 }
 
 #[test]
@@ -53,4 +75,15 @@ fn smoke_test() {
 fn test_bad_posn() {
     let mut h = Hist::new(4);
     h.sample(-1.5);
+}
+
+#[test]
+fn test_min_max() {
+    let mut h = Hist::new(4);
+    assert!(h.min().is_none());
+    assert!(h.max().is_none());
+    h.sample(0.55);
+    h.sample(0.80);
+    assert_eq!(h.min().unwrap(), 2);
+    assert_eq!(h.max().unwrap(), 3);
 }
