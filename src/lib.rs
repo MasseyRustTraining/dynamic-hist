@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use std::ops::Range;
 
 /// Record of samples. Each bin in the record
@@ -5,22 +6,28 @@ use std::ops::Range;
 pub struct Hist<T> {
     bins: Vec<usize>,
     count: usize,
-    range: Range<T>,
+    start: f64,
+    end: f64,
+    _sample_type: PhantomData<T>,
 }
 
 /// Keeps track of which bin samples fall in and report as
 /// needed.
-impl<T> Hist<T> {
+impl<T: Into<f64>> Hist<T> {
     /// Create a new histogram with `n` bins, accepting samples
     /// in `range` `[start..end)`.
     pub fn new(n: usize, range: Range<T>) -> Self {
         Hist {
             bins: vec![0; n],
             count: 0,
-            range,
+            start: range.start.into(),
+            end: range.end.into(),
+            _sample_type: PhantomData,
         }
     }
+}
 
+impl<T> Hist<T> {
     /// Return a slice containing the counts in the histogram.
     pub fn counts(&self) -> &[usize] {
         &self.bins
@@ -70,12 +77,8 @@ where T: Copy + PartialOrd + Into<f64>
     /// Slight rounding error may occur.
     pub fn sample(&mut self, posn: T) {
         let mut posn: f64 = posn.into();
-        let (start, end) = (
-            self.range.start.into(),
-            self.range.end.into(),
-        );
-        posn -= start;
-        posn /= end - start;
+        posn -= self.start;
+        posn /= self.end - self.start;
         if posn.is_nan() || !(0.0..1.0).contains(&posn) {
             panic!("position out of range");
         }
