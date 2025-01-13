@@ -1,9 +1,13 @@
 # Dynamic Histograms
 Bart Massey 2025
 
-Take the existing code and make it accept a value range for
-the histogram. The range should be given when creating the
-histogram, and should be of generic type.
+* Add `max()` and `min()` methods to the histogram. These
+  should contain the maximum and minimum bin numbers seen so
+  far, or `None` if no samples have been seen.
+
+* Take the existing code and make it accept a value range for
+  the histogram. The range should be given when creating the
+  histogram, and should be of generic type.
 
   1. Modify the `Hist` struct to take a generic type
      for values to be binned.
