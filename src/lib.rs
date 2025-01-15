@@ -61,9 +61,7 @@ impl<T> Hist<T> {
     }
 }
 
-impl<T> Hist<T>
-where T: Copy + PartialOrd + Into<f64>
-{
+impl<T: Into<f64>> Hist<T> {
     /// Count a new sample.
     ///
     /// # Panics
