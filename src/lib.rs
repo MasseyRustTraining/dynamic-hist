@@ -1,14 +1,12 @@
-use std::marker::PhantomData;
-use std::ops::Range;
+use std::ops::*;
 
 /// Record of samples. Each bin in the record
 /// represents its fraction of the space 0.0..1.0.
 pub struct Hist<T> {
     bins: Vec<usize>,
     count: usize,
-    start: f64,
-    end: f64,
-    _sample_type: PhantomData<T>,
+    start: T,
+    end: T,
 }
 
 /// Keeps track of which bin samples fall in and report as
@@ -20,9 +18,8 @@ impl<T: Into<f64>> Hist<T> {
         Hist {
             bins: vec![0; n],
             count: 0,
-            start: range.start.into(),
-            end: range.end.into(),
-            _sample_type: PhantomData,
+            start: range.start,
+            end: range.end,
         }
     }
 }
@@ -37,7 +34,11 @@ impl<T> Hist<T> {
     pub fn total_count(&self) -> usize {
         self.count
     }
+}
 
+impl<T> Hist<T>
+where T: PartialOrd
+{
     /// Return the lowest bin number, if any,
     /// containing a non-zero count.
     pub fn min(&self) -> Option<usize> {
@@ -61,7 +62,11 @@ impl<T> Hist<T> {
     }
 }
 
-impl<T: Into<f64>> Hist<T> {
+impl<T> Hist<T>
+where
+    T: PartialOrd + Sub<Output=T> + SubAssign + DivAssign + Mul,
+    usize: Into<T>,
+{
     /// Count a new sample.
     ///
     /// # Panics
@@ -74,14 +79,13 @@ impl<T: Into<f64>> Hist<T> {
     /// Bin boundaries are computed using `f64` arithmetic.
     /// Slight rounding error may occur.
     pub fn sample(&mut self, posn: T) {
-        let mut posn: f64 = posn.into();
         posn -= self.start;
         posn /= self.end - self.start;
-        if posn.is_nan() || !(0.0..1.0).contains(&posn) {
+        if !(self.start..self.end).contains(&posn) {
             panic!("position out of range");
         }
         let nbins = self.bins.len();
-        let bin_number = (nbins as f64 * posn).floor() as usize;
+        let bin_number = (nbins.into() * posn).floor() as usize;
         self.bins[bin_number] += 1;
         self.count += 1;
     }
